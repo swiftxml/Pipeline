@@ -148,7 +148,7 @@ extension AsyncExecution {
 }
 
 /// A message contains a message ID, a message type, and fact and maybe solution as `MultiLanguageText`.
-public struct Message {
+public struct Message: Sendable {
     
     public let id: String?
     public let type: InfoType
