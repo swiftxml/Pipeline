@@ -1,6 +1,7 @@
 import Testing
 import PipelineCore
 import Foundation
+import PipelineTestUtilities
 
 @Suite(.serialized) struct PauseTests {
     

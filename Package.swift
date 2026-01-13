@@ -31,6 +31,12 @@ let package = Package(
             targets: ["Pipeline"]
         ),
         
+        // For the tests:
+        .library(
+            name: "PipelineTestUtilities",
+            targets: ["PipelineTestUtilities"]
+        )
+        
     ],
     dependencies: [
         // Dependencies declare other packages that this package depends on.
@@ -38,6 +44,14 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-syntax.git", from: "602.0.0"),
     ],
     targets: [
+        
+        .target(
+            name: "PipelineTestUtilities",
+            dependencies: [
+                "PipelineCore",
+            ],
+            path: "Tests/PipelineTestUtilities"
+        ),
         
         // PipelineCore (without the step macro):
         .target(
@@ -49,7 +63,8 @@ let package = Package(
         .testTarget(
             name: "PipelineCoreTests",
             dependencies: [
-                "PipelineCore"
+                "PipelineTestUtilities",
+                "PipelineCore",
             ]
         ),
         
@@ -72,6 +87,7 @@ let package = Package(
                 "StepMacro",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
                 "PipelineCore",
+                "PipelineTestUtilities",
             ],
             swiftSettings: [
                 .enableExperimentalFeature("BodyMacros"),

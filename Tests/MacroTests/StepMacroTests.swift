@@ -3,6 +3,24 @@ import SwiftSyntaxMacrosTestSupport
 import Testing
 import PipelineCore
 import StepMacro
+import PipelineTestUtilities
+
+public struct MyMetaData: CustomStringConvertible, Sendable {
+    
+    let applicationName: String
+    let processID: String
+    let workItemInfo: String
+    
+    public init(applicationName: String, processID: String, workItemInfo: String) {
+        self.applicationName = applicationName
+        self.processID = processID
+        self.workItemInfo = workItemInfo
+    }
+    
+    public var description: String {
+        "\(applicationName): \(processID)/\(workItemInfo)"
+    }
+}
 
 @Suite(.serialized) struct StepMacroTests {
     

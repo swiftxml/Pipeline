@@ -5,8 +5,8 @@ import FoundationEssentials
 #else
 import Foundation
 #endif
-
 import Localization
+import PipelineTestUtilities
 
 @Suite(.serialized) struct LoggingTests {
     

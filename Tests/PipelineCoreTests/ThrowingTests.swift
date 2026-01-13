@@ -5,6 +5,7 @@ import FoundationEssentials
 #else
 import Foundation
 #endif
+import PipelineTestUtilities
 
 @Suite(.serialized) struct ThrowingTests {
     

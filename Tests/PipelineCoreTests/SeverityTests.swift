@@ -5,6 +5,7 @@ import FoundationEssentials
 #else
 import Foundation
 #endif
+import PipelineTestUtilities
 
 @Suite(.serialized) struct SeverityTests {
     
@@ -24,6 +25,7 @@ import Foundation
         
         @Sendable func step2(during execution: Execution, number: Int, infoTypeForSeven: InfoType) {
             execution.effectuate("#\(number): doing something in step1", checking: StepID(crossModuleFileDesignation: #file, functionSignature: #function)) {
+                print("!!! number: \(number)")
                 if number == 7 {
                     execution.log(infoTypeForSeven, "oh oh, number is 7!")
                 }
@@ -44,7 +46,7 @@ import Foundation
         do {
             let infoTypeForSeven = InfoType.error
             
-            executeInParallel(batch: numbers, threads: threads) { number in
+            parallel(batch: numbers, threads: threads) { number in
                 
                 let parallelExecution = Execution(withExecutionState: executionState)
                 step1(during: parallelExecution, number: number, infoTypeForSeven: infoTypeForSeven)
@@ -59,7 +61,7 @@ import Foundation
         do {
             let infoTypeForSeven = InfoType.fatal
             
-            executeInParallel(batch: numbers, threads: threads) { number in
+            parallel(batch: numbers, threads: threads) { number in
                 
                 let parallelExecution = Execution(withExecutionState: executionState)
                 step1(during: parallelExecution, number: number, infoTypeForSeven: infoTypeForSeven)

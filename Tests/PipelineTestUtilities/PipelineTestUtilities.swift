@@ -1,7 +1,7 @@
 import Foundation
 import PipelineCore
 
-protocol Logger: Sendable {
+public protocol Logger: Sendable {
     func log(_ message: String)
     func close()
 }
@@ -13,7 +13,7 @@ public class PrintingLogger: @unchecked Sendable, Logger {
         print(message)
     }
     
-    func close() {
+    public func close() {
         // -
     }
     
@@ -21,15 +21,14 @@ public class PrintingLogger: @unchecked Sendable, Logger {
 
 public final class CollectingLogger: @unchecked Sendable, Logger {
     
-    private var _messages = [String]()
-    let messagesSemaphore = DispatchSemaphore(value: 1)
+    public var _messages = [String]()
+    
+    public init() {}
     
     /// Gets the current messages.
-    var messages: [String] {
-        messagesSemaphore.wait()
-        let value = _messages
-        messagesSemaphore.signal()
-        return value
+    public var messages: [String] {
+        wait()
+        return _messages
     }
     
     internal let group = DispatchGroup()
@@ -38,9 +37,7 @@ public final class CollectingLogger: @unchecked Sendable, Logger {
     public func log(_ message: String) {
         group.enter()
         self.queue.sync {
-            messagesSemaphore.wait()
             self._messages.append(message)
-            messagesSemaphore.signal()
             self.group.leave()
         }
     }
@@ -50,7 +47,7 @@ public final class CollectingLogger: @unchecked Sendable, Logger {
         group.wait()
     }
     
-    func close() {
+    public func close() {
         wait()
     }
     
@@ -60,15 +57,11 @@ public final class CollectingLogger: @unchecked Sendable, Logger {
 public final class SeverityTracker: @unchecked Sendable {
     
     private var _severity = InfoType.allCases.min()!
-    let messagesSemaphore = DispatchSemaphore(value: 1)
     
     /// Gets the current severity.
     var value: InfoType {
-        messagesSemaphore.wait()
         wait()
-        let value = _severity
-        messagesSemaphore.signal()
-        return value
+        return _severity
     }
     
     internal let group = DispatchGroup()
@@ -77,11 +70,9 @@ public final class SeverityTracker: @unchecked Sendable {
     public func process(_ newSeverity: InfoType) {
         group.enter()
         self.queue.sync {
-            messagesSemaphore.wait()
             if newSeverity > _severity {
                 _severity = newSeverity
             }
-            messagesSemaphore.signal()
             self.group.leave()
         }
     }
@@ -104,14 +95,14 @@ public struct ExecutionEventProcessorForLogger: ExecutionEventProcessor {
     private let excutionInfoFormat: ExecutionInfoFormat?
     
     /// The the severity i.e. the worst message type.
-    var severity: InfoType { severityTracker.value }
+    public var severity: InfoType { severityTracker.value }
     
     /// This closes all logging.
     public func closeEventProcessing() throws {
         logger.close()
     }
     
-    init(
+    public init(
         withMetaDataInfo metadataInfo: String,
         withMetaDataInfoForUserInteraction metadataInfoForUserInteraction: String? = nil,
         logger: Logger,
@@ -139,55 +130,72 @@ public struct ExecutionEventProcessorForLogger: ExecutionEventProcessor {
     
 }
 
-struct MyMetaData: CustomStringConvertible {
+public struct MyMetaData: CustomStringConvertible, Sendable {
     
     let applicationName: String
     let processID: String
     let workItemInfo: String
     
-    var description: String {
+    public init(applicationName: String, processID: String, workItemInfo: String) {
+        self.applicationName = applicationName
+        self.processID = processID
+        self.workItemInfo = workItemInfo
+    }
+    
+    public var description: String {
         "\(applicationName): \(processID)/\(workItemInfo)"
     }
 }
 
-/// Process the items in `batch` in parallel by the function `worker` using `threads` number of threads.
-public func executeInParallel<T: Sendable>(batch: any Sequence<T>, threads: Int, worker: @escaping @Sendable (T) -> ()) {
-    let queue = DispatchQueue(label: "executeInParallel", attributes: .concurrent)
-    let group = DispatchGroup()
-    let semaphore = DispatchSemaphore(value: threads)
-    
-    for item in batch {
-        group.enter()
-        semaphore.wait()
-        queue.async {
-            worker(item)
-            semaphore.signal()
-            group.leave()
+/// Process the items in `batch` in parallel by the function `worker`.
+public func parallel<T: Sendable>(batch: Array<T>, worker: @escaping @Sendable (T) async -> ()) {
+    let semaphore = DispatchSemaphore(value: 0)
+
+    Task {
+        await withTaskGroup(of: Void.self) { taskGroup in
+            for work in batch {
+                taskGroup.addTask {
+                    await worker(work)
+                }
+            }
         }
+        semaphore.signal()
     }
     
-    group.wait()
+    semaphore.wait()
 }
 
 /// Process the items in `batch` in parallel by the function `worker` using `threads` number of threads.
-public func executeInParallel<T: Sendable>(batch: any Sequence<T>, threads: Int, worker: @escaping @Sendable (T) async -> ()) {
-    let group = DispatchGroup()
-    let semaphore = DispatchSemaphore(value: threads)
-    
-    for item in batch {
-        group.enter()
-        semaphore.wait()
-        Task {
-            await worker(item)
-            semaphore.signal()
-            group.leave()
+public func parallel<T: Sendable>(batch: Array<T>, threads: Int, worker: @escaping @Sendable (T) async -> ()) {
+    let semaphore = DispatchSemaphore(value: 0)
+    Task {
+        await withTaskGroup(of: Void.self) { taskGroup in
+            let maxWorkers = min(threads, batch.count)
+            for i in 0..<maxWorkers {
+                taskGroup.addTask {
+                    let work = batch[i]
+                    await worker(work)
+                }
+            }
+            var nextIndex = maxWorkers
+            for await _ in taskGroup {
+                if nextIndex < batch.count {
+                    let index = nextIndex
+                    taskGroup.addTask {
+                        let work = batch[index]
+                        await worker(work)
+                    }
+                }
+                nextIndex += 1
+                
+            }
         }
+        semaphore.signal()
     }
-    
-    group.wait()
+    semaphore.wait()
 }
 
-extension String {
+public extension String {
     var firstPathPart: Substring {
         self.split(separator: "/", omittingEmptySubsequences: false).first!
     }
@@ -195,38 +203,42 @@ extension String {
 
 /// Get the ellapsed seconds since `start`.
 /// The time to compare to is either the current time or the value of the argument `reference`.
-func elapsedSeconds(start: ContinuousClock.Instant, reference: ContinuousClock.Instant = ContinuousClock.now) -> Double {
+public func elapsedSeconds(start: ContinuousClock.Instant, reference: ContinuousClock.Instant = ContinuousClock.now) -> Double {
     let duration = start.duration(to: reference)
     return Double(duration.attoseconds) / 1e18
 }
 
-func elapsedTime(of f: () -> Void) -> Double {
+public func elapsedTime(of f: () -> Void) -> Double {
     let startTime = ContinuousClock.now
     f()
     return elapsedSeconds(start: startTime)
 }
 
-func elapsedTime(of f: () async -> Void) async -> Double {
+public func elapsedTime(of f: () async -> Void) async -> Double {
     let startTime = ContinuousClock.now
     await f()
     return elapsedSeconds(start: startTime)
 }
 
 public struct TestError: Error, CustomStringConvertible  {
+    
     public let description: String
     
-    var localizedDescription: String { description }
+    public var localizedDescription: String { description }
     
     public init(_ description: String) {
         self.description = description
     }
 }
 
-struct UUIDReplacements {
+public struct UUIDReplacements {
+    
     var count = 0
     var mapped = [String:String]()
     
-    mutating func replacement(for token: String) -> String {
+    public init() {}
+    
+    public mutating func replacement(for token: String) -> String {
         if let existing = mapped[token] {
             return existing
         } else {
@@ -237,7 +249,7 @@ struct UUIDReplacements {
         }
     }
     
-    mutating func doReplacements(in text: String) -> String {
+    public mutating func doReplacements(in text: String) -> String {
         var parts = [Substring]()
         var rest = Substring(text)
         while let match = rest.firstMatch(of: /[0-9A-Z]{8}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{12}/) {
