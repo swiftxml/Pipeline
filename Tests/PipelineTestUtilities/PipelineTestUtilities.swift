@@ -150,7 +150,7 @@ public struct MyMetaData: CustomStringConvertible, Sendable {
 /// Process the items in `batch` in parallel by the function `worker`.
 public func parallel<T: Sendable>(batch: Array<T>, worker: @escaping @Sendable (T) async -> ()) {
     let semaphore = DispatchSemaphore(value: 0)
-
+    
     Task {
         await withTaskGroup(of: Void.self) { taskGroup in
             for work in batch {
