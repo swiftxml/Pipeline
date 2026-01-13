@@ -25,7 +25,6 @@ import PipelineTestUtilities
         
         @Sendable func step2(during execution: Execution, number: Int, infoTypeForSeven: InfoType) {
             execution.effectuate("#\(number): doing something in step1", checking: StepID(crossModuleFileDesignation: #file, functionSignature: #function)) {
-                print("!!! number: \(number)")
                 if number == 7 {
                     execution.log(infoTypeForSeven, "oh oh, number is 7!")
                 }

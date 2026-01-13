@@ -160,12 +160,10 @@ import PipelineTestUtilities
         
         let executionState = await execution.state
         parallel(batch: numbers, threads: threads) { number in
-            print("NUMBER \(number)")
             let parallelExecution = AsyncExecution(withExecutionState: executionState)
             await step1(during: parallelExecution, number: number)
             
         }
-        print("AFTER PARALLEL!")
         
         logger.wait() // because this is a concurrent logger, wait until all logging is done!
         
@@ -234,7 +232,6 @@ import PipelineTestUtilities
         
         let actualResult = logger.messages.map{ $0.trimmingCharacters(in: .whitespacesAndNewlines) }.joined(separator: "\n")
         print(actualResult)
-        print(">>>>>>>"); print(logger._messages); print("<<<<<<<")
         let actualResultSorted = logger.messages.map{ $0.trimmingCharacters(in: .whitespacesAndNewlines) }.sorted().joined(separator: "\n")
         
         // we can only compare the sorted messages:
