@@ -164,7 +164,6 @@ public func parallel<T: Sendable>(batch: Array<T>, worker: @escaping @Sendable (
 /// (the number of items actually being processed simultaneously could be lower).
 public func parallel<T: Sendable>(batch: Array<T>, maximalParallelOperations: Int, worker: @escaping @Sendable (T) async -> ()) async {
     await withTaskGroup(of: Void.self) { taskGroup in
-        let maximalParallelOperations = min(maximalParallelOperations, batch.count)
         for (index,work) in batch.enumerated() {
             if index >= maximalParallelOperations {
                 _ = await taskGroup.next()
