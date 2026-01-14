@@ -36,7 +36,7 @@ import PipelineTestUtilities
         let execution = Execution(executionEventProcessor: myExecutionEventProcessor)
         
         let numbers = Array(1...20)
-        let threads = 5
+        let maximalParallelOperations = 5
         
         let executionState = execution.state
         
@@ -45,7 +45,7 @@ import PipelineTestUtilities
         do {
             let infoTypeForSeven = InfoType.error
             
-            parallel(batch: numbers, threads: threads) { number in
+            await parallel(batch: numbers, maximalParallelOperations: maximalParallelOperations) { number in
                 
                 let parallelExecution = Execution(withExecutionState: executionState)
                 step1(during: parallelExecution, number: number, infoTypeForSeven: infoTypeForSeven)
@@ -60,7 +60,7 @@ import PipelineTestUtilities
         do {
             let infoTypeForSeven = InfoType.fatal
             
-            parallel(batch: numbers, threads: threads) { number in
+            await parallel(batch: numbers, maximalParallelOperations: maximalParallelOperations) { number in
                 
                 let parallelExecution = Execution(withExecutionState: executionState)
                 step1(during: parallelExecution, number: number, infoTypeForSeven: infoTypeForSeven)

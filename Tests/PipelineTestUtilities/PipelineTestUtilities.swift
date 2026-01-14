@@ -147,42 +147,30 @@ public struct MyMetaData: CustomStringConvertible, Sendable {
     }
 }
 
-/// Process the items in `batch` in parallel by the function `worker`.
-public func parallel<T: Sendable>(batch: Array<T>, worker: @escaping @Sendable (T) async -> ()) {
-    let semaphore = DispatchSemaphore(value: 0)
-    
-    Task {
-        await withTaskGroup(of: Void.self) { taskGroup in
-            for work in batch {
-                taskGroup.addTask {
-                    await worker(work)
-                }
+/// Process the items in `batch` in parallel by the function `worker` (only a subset of the items might actually be processed simultaneously).
+public func parallel<T: Sendable>(batch: Array<T>, worker: @escaping @Sendable (T) async -> ()) async {
+    await withTaskGroup(of: Void.self) { taskGroup in
+        for work in batch {
+            taskGroup.addTask {
+                await worker(work)
             }
         }
-        semaphore.signal()
     }
-    
-    semaphore.wait()
 }
 
-/// Process the items in `batch` in parallel by the function `worker` using `threads` number of threads.
-public func parallel<T: Sendable>(batch: Array<T>, threads: Int, worker: @escaping @Sendable (T) async -> ()) {
-    let semaphore = DispatchSemaphore(value: 0)
-    Task {
-        await withTaskGroup(of: Void.self) { taskGroup in
-            let maxWorkers = min(threads, batch.count)
-            for (index,work) in batch.enumerated() {
-                if index >= maxWorkers {
-                    _ = await taskGroup.next()
-                }
-                taskGroup.addTask {
-                    await worker(work)
-                }
+/// Process the items in `batch` in parallel by the function `worker`, but no more than `maximalParallelOperations` at the same time (the number of items actually being processed simultaneously could be lower).
+public func parallel<T: Sendable>(batch: Array<T>, maximalParallelOperations: Int, worker: @escaping @Sendable (T) async -> ()) async {
+    await withTaskGroup(of: Void.self) { taskGroup in
+        let maximalParallelOperations = min(maximalParallelOperations, batch.count)
+        for (index,work) in batch.enumerated() {
+            if index >= maximalParallelOperations {
+                _ = await taskGroup.next()
+            }
+            taskGroup.addTask {
+                await worker(work)
             }
         }
-        semaphore.signal()
     }
-    semaphore.wait()
 }
 
 public extension String {

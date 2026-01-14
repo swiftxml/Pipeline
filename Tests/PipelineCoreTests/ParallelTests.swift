@@ -15,6 +15,7 @@ import PipelineTestUtilities
         workItemInfo: "item123"
     )
     
+    /// Executing synchronous steps in parallel.
     @Test func SynchronousParallelTest() async throws {
         
         @Sendable func step1(during execution: Execution, number: Int) {
@@ -42,10 +43,10 @@ import PipelineTestUtilities
         let execution = Execution(executionEventProcessor: myExecutionEventProcessor)
         
         let numbers = Array(1...20)
-        let threads = 5
+        let maximalParallelOperations = 5
         
         let executionState = execution.state
-        parallel(batch: numbers, threads: threads) { number in
+        await parallel(batch: numbers, maximalParallelOperations: maximalParallelOperations) { number in
             
             let parallelExecution = Execution(withExecutionState: executionState)
             step1(during: parallelExecution, number: number)
@@ -128,6 +129,7 @@ import PipelineTestUtilities
         #expect(actualResult != expectedSorted)
     }
     
+    /// Executing asynchronous steps in parallel.
     @Test func AsynchronousParallelTest() async throws {
         
         @Sendable func step1(during execution: AsyncExecution, number: Int) async {
@@ -156,10 +158,10 @@ import PipelineTestUtilities
         let execution = AsyncExecution(executionEventProcessor: myExecutionEventProcessor)
         
         let numbers = Array(1...20)
-        let threads = 5
+        let maximalParallelOperations = 5
         
         let executionState = await execution.state
-        parallel(batch: numbers, threads: threads) { number in
+        await parallel(batch: numbers, maximalParallelOperations: maximalParallelOperations) { number in
             let parallelExecution = AsyncExecution(withExecutionState: executionState)
             await step1(during: parallelExecution, number: number)
             
