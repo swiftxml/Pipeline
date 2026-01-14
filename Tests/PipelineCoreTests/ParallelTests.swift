@@ -43,10 +43,10 @@ import PipelineTestUtilities
         let execution = Execution(executionEventProcessor: myExecutionEventProcessor)
         
         let numbers = Array(1...20)
-        let maximalParallelOperations = 5
+        let maximalSimultaneousOperations = 5
         
         let executionState = execution.state
-        await parallel(batch: numbers, maximalParallelOperations: maximalParallelOperations) { number in
+        await parallel(batch: numbers, maximalSimultaneousOperations: maximalSimultaneousOperations) { number in
             
             let parallelExecution = Execution(withExecutionState: executionState)
             step1(during: parallelExecution, number: number)
@@ -158,10 +158,10 @@ import PipelineTestUtilities
         let execution = AsyncExecution(executionEventProcessor: myExecutionEventProcessor)
         
         let numbers = Array(1...20)
-        let maximalParallelOperations = 5
+        let maximalSimultaneousOperations = 5
         
         let executionState = await execution.state
-        await parallel(batch: numbers, maximalParallelOperations: maximalParallelOperations) { number in
+        await parallel(batch: numbers, maximalSimultaneousOperations: maximalSimultaneousOperations) { number in
             let parallelExecution = AsyncExecution(withExecutionState: executionState)
             await step1(during: parallelExecution, number: number)
             
