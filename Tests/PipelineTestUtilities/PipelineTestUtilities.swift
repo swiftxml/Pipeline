@@ -147,7 +147,8 @@ public struct MyMetaData: CustomStringConvertible, Sendable {
     }
 }
 
-/// Process the items in `batch` in parallel by the function `worker` (only a subset of the items might actually be processed simultaneously).
+/// Process the items in `batch` in parallel by the function `worker`
+/// (only a subset of the items might actually be processed simultaneously).
 public func parallel<T: Sendable>(batch: Array<T>, worker: @escaping @Sendable (T) async -> ()) async {
     await withTaskGroup(of: Void.self) { taskGroup in
         for work in batch {
@@ -158,7 +159,9 @@ public func parallel<T: Sendable>(batch: Array<T>, worker: @escaping @Sendable (
     }
 }
 
-/// Process the items in `batch` in parallel by the function `worker`, but no more than `maximalParallelOperations` at the same time (the number of items actually being processed simultaneously could be lower).
+/// Process the items in `batch` in parallel by the function `worker`,
+/// but no more than`maximalParallelOperations` at the same time
+/// (the number of items actually being processed simultaneously could be lower).
 public func parallel<T: Sendable>(batch: Array<T>, maximalParallelOperations: Int, worker: @escaping @Sendable (T) async -> ()) async {
     await withTaskGroup(of: Void.self) { taskGroup in
         let maximalParallelOperations = min(maximalParallelOperations, batch.count)
