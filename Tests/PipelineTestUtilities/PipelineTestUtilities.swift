@@ -31,20 +31,17 @@ public final class CollectingLogger: @unchecked Sendable, Logger {
         return _messages
     }
     
-    internal let group = DispatchGroup()
     internal let queue = DispatchQueue(label: "CollectingLogger", qos: .background)
     
     public func log(_ message: String) {
-        group.enter()
-        self.queue.sync {
+        self.queue.async {
             self._messages.append(message)
-            self.group.leave()
         }
     }
     
     /// Wait until all logging is done.
     public func wait() {
-        group.wait()
+        self.queue.sync {}
     }
     
     public func close() {
@@ -64,22 +61,19 @@ public final class SeverityTracker: @unchecked Sendable {
         return _severity
     }
     
-    internal let group = DispatchGroup()
-    internal let queue = DispatchQueue(label: "CollectingLogger", qos: .background)
+    internal let queue = DispatchQueue(label: "SeverityTracker", qos: .background)
     
     public func process(_ newSeverity: InfoType) {
-        group.enter()
-        self.queue.sync {
-            if newSeverity > _severity {
-                _severity = newSeverity
+        self.queue.async {
+            if newSeverity > self._severity {
+                self._severity = newSeverity
             }
-            self.group.leave()
         }
     }
     
     /// Wait until all logging is done.
     public func wait() {
-        group.wait()
+        self.queue.sync {}
     }
     
 }
